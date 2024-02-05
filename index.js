@@ -5,11 +5,16 @@ const port = 3001; //port number
 const Redis = require('redis'); //import the radis class from library
 const bodyParser = require('body-parser'); //Processes user data
 
-app.use(cors());
+const options ={
+  origin:'http://localhost:3000'
+}
+
+app.use(cors(options));
 
 // const redisClient =Redis.createClient({
 //  url: `redis://localhost:6379`
 // });
+
 const redisClient = Redis.createClient({
     host: 'localhost',
     port: 6379
@@ -29,17 +34,19 @@ app.use(bodyParser.json());
 //2 - req to from browser
 //3 - res the response from the browser
 
-app.get('/boxes', async (req, res) => {
-    // Handle GET requests to '/boxes'
-  
+app.get('/boxes', async (req, res) => {// Handle GET requests to '/boxes'
+    
     // Use the Redis client to retrieve JSON data stored at the key 'boxes'
-    let boxesArray = await redisClient.json.get(`boxes`, { path: `$` });
+   let boxesArray = await redisClient.json.get(`boxes`, { path: `$` });
   
     // Check if the data is wrapped in an extra array
     let boxes = Array.isArray(boxesArray) ? boxesArray[0] : boxesArray;
-  
     // Send the retrieved JSON data as the response to the browser
     res.send(boxes);
+    
+    // let boxes = await redisClient.json.get(`boxes`, { path: `$` });
+    // res.json(boxes[0]);
+
   });
 
 app.post('/boxes', async (req, res) => {
