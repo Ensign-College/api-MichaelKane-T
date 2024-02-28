@@ -4,6 +4,12 @@ const app = express(); // an express application
 const port = 3001; //port number
 const Redis = require('redis'); //import the radis class from library
 const bodyParser = require('body-parser'); //Processes user data
+const {addOrder,getOrder} = require("./orderservice");
+const {addOrderItem,getOrderItem} = require("./orderItems");
+const fs = require("fs");
+const Schema = JSON.parse(fs.readFileSync("./orderItemSchema.json","utf8"));
+const Ajv = require("ajv");
+const ajv = new Ajv();
 
 const options ={
   origin:'http://localhost:3000'
@@ -29,38 +35,7 @@ app.listen(port,()=>{
 
 app.use(bodyParser.json());
 
-app.get('/boxes', async (req, res) => {// Handle GET requests to '/boxes'
-   try{
-   
-   const boxesArray = await redisClient.json.get(`boxes`, { path: `$` });
-   // Check if the data is wrapped in an extra array
-   const boxes = Array.isArray(boxesArray) ? boxesArray[0] : boxesArray;
-   res.send(boxes);
-
-   }catch(error){
-    console.error(error);
-    res.status(500).send('1. Internal Server Error')
-   }
-  
-  });
-
-app.post('/boxes', async (req, res) => {
-  
-    try {
-        const newBox = req.body;
-        newBox.id = await redisClient.json.arrLen(`boxes`, `$`) + 1;
-        await redisClient.json.arrAppend('boxes', `$`, newBox);
-        res.status(200).send('Box added successfully');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    }
-    
-  });
-
 console.log("Starting... .  ."); 
-
-
 
 const initializeCustomerPaymentsKey = async (redisClient) => {
     try {
@@ -123,8 +98,6 @@ app.get('/payments/:customerID', async (req, res) => {
     }
 });
 
-
-
 app.post('/payments', async (req, res) => {
     const userPaymentDetails = req.body;
     const requiredFields = ['customerID', 'firstName', 'lastName', 'cardNumber', 'expiryDate', 'cvv', 'address', 'city', 'state', 'zipCode'];
@@ -142,3 +115,72 @@ app.post('/payments', async (req, res) => {
     }
 });
 
+app.post("/orders", async (req, res) => {
+    let order = req.body;
+
+    let responseStatus = (order.productQuantity && order.ShippingAddress) ? 200 : 400;
+
+    if (responseStatus === 200) {
+        try {
+            await addOrder({ redisClient, order });
+        } catch (error) {
+            console.error(error);
+            res.status(500).send("Internal Server Error");
+            return;
+        }
+    } else {
+        res.status(responseStatus);
+        res.send(`Missing one of the Following Fields: ${order.productQuantity ? "" : "productQuantity"} ${order.ShippingAddress ? "" : "ShippingAddress"}`);
+    }
+    res.status(responseStatus).send();
+});
+
+
+app.get("/orders/:orderID", async (req, res) =>{
+
+    //get order from the database
+    const orderID = req.params.orderID;
+    let order = await getOrder({redisClient,orderID});
+    if(order === null){
+        res.status(404).send("Order not Found");
+    }else {
+        res.json(order);
+    }
+})
+
+app.post("/orderItems",async (req, res)=>{
+    try{
+        console.log("Schema:",Schema);
+        const validate = ajv.compile(Schema);
+        const valid = validate(req.body);
+        if(!valid){
+         return res.status(400).json({error: "Invalid request body"})
+        }
+        console.log("Request body:", req.body);
+        //callng orderItem function and storingthe result
+        const orderItemId = await addOrderItem({
+            redisClient,
+            orderItem: req.body,
+        })
+        //responding with the result
+        res.status(201).json({
+            orderItemId,
+            message: "Order Item Added Successfully"
+        });
+    }catch(error){
+
+        console.error("Error Adding Order Item", error);
+        res.status(500).json({error: "Internal Server Error"});
+    }
+})
+
+app.get("/ordersItems/:orderItemId", async (req,res)=> {
+    try{
+        const orderItemId = req.params.orderItemId;
+        const orderItem = await getOrderItem({ redisClient,orderItem});
+        res.json(orderItem);
+    }catch(error){
+        console.error("Error getting order Item:", error);
+        res.status(500).json({error:"Internal server error"});
+    }
+}) 
