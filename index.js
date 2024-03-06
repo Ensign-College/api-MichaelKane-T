@@ -135,7 +135,6 @@ app.post("/orders", async (req, res) => {
     res.status(responseStatus).send();
 });
 
-
 app.get("/orders/:orderID", async (req, res) =>{
 
     //get order from the database
