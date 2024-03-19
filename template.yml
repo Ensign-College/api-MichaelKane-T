@@ -60,4 +60,26 @@ Resources:
           ToPort: 6379
           CidrIp: 0.0.0.0/0
 
+  MyLambdaFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs14.x
+      CodeUri: ./lambda
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          REDIS_HOST: !GetAtt MyElasticacheRedis.RedisEndpointAddress
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt MySecurityGroup.GroupId
+        SubnetIds:
+          - !Ref MySubnet
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            Path: /myendpoint
+            Method: get
 

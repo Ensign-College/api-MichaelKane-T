@@ -4,7 +4,6 @@ const app = express(); // an express application
 const port = 3001; //port number
 const Redis = require('redis'); //import the radis class from library
 const bodyParser = require('body-parser'); //Processes user data
-const serverless = require('aws-serverless-express');
 const {addOrder,getOrder} = require("./orderservice");
 const {addOrderItem,getOrderItem} = require("./orderItems");
 const fs = require("fs");
@@ -184,10 +183,3 @@ app.get("/ordersItems/:orderItemId", async (req,res)=> {
         res.status(500).json({error:"Internal server error"});
     }
 }) 
-
-// Create a handler for AWS Lambda
-const server = serverless.createServer(app);
-
-exports.handler = async (event, context) => {
-  return serverless.proxy(server, event, context, 'PROMISE').promise;
-};
