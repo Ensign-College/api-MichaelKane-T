@@ -74,8 +74,8 @@ Resources:
       VpcConfig:
         SecurityGroupIds:
           - !GetAtt MySecurityGroup.GroupId
-        SubnetIds:
-          - !Ref MySubnet
+        # SubnetIds:
+        #   - !Ref MySubnet
       Events:
         MyApi:
           Type: Api
