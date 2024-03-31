@@ -47,11 +47,12 @@ Resources:
           - !GetAtt MySecurityGroup.GroupId
         SubnetIds:
           - subnet-02c217f126c0ce1d5  # Add your subnet ID here
+        VpcId: vpc-066e6a637e37f2752
       Events:
         MyApi:
           Type: Api
           Properties:
-            Path: /myendpoint
+            Path: /api
             Method: get
 
 
