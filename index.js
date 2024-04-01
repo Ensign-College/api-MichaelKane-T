@@ -12,8 +12,8 @@ const ajv = new Ajv();
 
 // Configure Redis client to connect to ElastiCache cluster
 const redisClient = Redis.createClient({
-    host: `mic-my-13rca21flex19.kxxsr4.0001.use1.cache.amazonaws.com`, // Use environment variable for Redis host
-    port: 6379
+    url: `redis://${process.env.REDIS_HOST}:6379`, // Use environment variable for Redis host
+    
 });
 
 redisClient.on('connect', () => {
@@ -172,5 +172,13 @@ app.get("/ordersItems/:orderItemId", async (req,res)=> {
 const server = serverless.createServer(app);
 
 exports.handler = async (event, context) => {
-    return serverless.proxy(server, event, context, 'PROMISE').promise;
+    redisClient.connect();
+    try {
+        return serverless.proxy(server, event, context, 'PROMISE').promise;
+    }
+    catch (error) {
+        console.error('Error handling request Chimbozama Futi:', error);
+        return error;
+    }
+    
 };
