@@ -6,7 +6,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
-      Handler: index.Handler
+      Handler: index.handler
       Runtime: nodejs20.x
       Events:
         ApiEvent:
