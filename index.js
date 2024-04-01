@@ -24,13 +24,13 @@ app.use(bodyParser.json());
 
 const initializeCustomerPaymentsKey = async (redisClient) => {
     try {
-        if (!redisClient.connected) {
-            const keyExists = await redisClient.exists('customerPayments');
+       if (!redisClient.connected) {
+        const keyExists = await redisClient.exists('customerPayments');
             if (!keyExists) {
                 await redisClient.json.set('customerPayments', '$', []);
             }
-        }
-
+        } 
+        
     } catch (error) {
         console.error('Error initializing Redis key:', error);
     }
@@ -40,13 +40,15 @@ const addCustomer = async ({ redisClient, userPaymentDetails }) => {
     const dateStamp = new Date().getTime();
     const clientID = `customer:${userPaymentDetails.customerID}-${dateStamp}`;
     const existingPayments = await redisClient.json.get(clientID);
-
+    
 
     if (existingPayments !== null) {
+        // Customer already exists, update their information
         const clientKey = `client:${userPaymentDetails.customerID}-${dateStamp}-00`;
         await redisClient.json.set(clientKey, '$', userPaymentDetails);
         console.log(`Updated customer information for ${clientID}`);
     } else {
+        // Customer does not exist, create a new customer
         const clientKey = `client:${userPaymentDetails.customerID}-${dateStamp}-00`;
         await redisClient.json.set(clientKey, '$', userPaymentDetails);
         console.log(`Added new customer with ID ${clientID}`);
@@ -59,9 +61,12 @@ app.get('/payments/:customerID', async (req, res) => {
         const customerID = req.params.customerID;
         const keysPattern = `${customerID}`;
         const customerKeys = await redisClient.keys(keysPattern);
+        
+        console.error(keysPattern);
 
         if (customerKeys.length === 0) {
             res.status(404).send(`No payment details found for customer ID ${customerID}`);
+            console.error(keysPattern);
             return;
         }
 
@@ -81,7 +86,7 @@ app.get('/payments/:customerID', async (req, res) => {
 app.post('/payments', async (req, res) => {
     const userPaymentDetails = req.body;
     const requiredFields = ['customerID', 'firstName', 'lastName', 'cardNumber', 'expiryDate', 'cvv', 'address', 'city', 'state', 'zipCode'];
-
+    
     if (requiredFields.every(field => userPaymentDetails[field] !== undefined && userPaymentDetails[field] !== null)) {
         try {
             await addCustomer({ redisClient, userPaymentDetails });
@@ -95,9 +100,75 @@ app.post('/payments', async (req, res) => {
     }
 });
 
-// Define other routes for orders, order items, etc.
+app.post("/orders", async (req, res) => {
+    let order = req.body;
 
-// Create a handler for AWS Lambda
+    let responseStatus = (order.productQuantity && order.ShippingAddress) ? 200 : 400;
+
+    if (responseStatus === 200) {
+        try {
+            await addOrder({ redisClient, order });
+        } catch (error) {
+            console.error(error);
+            res.status(500).send("Internal Server Error");
+            return;
+        }
+    } else {
+        res.status(responseStatus);
+        res.send(`Missing one of the Following Fields: ${order.productQuantity ? "" : "productQuantity"} ${order.ShippingAddress ? "" : "ShippingAddress"}`);
+    }
+    res.status(responseStatus).send();
+});
+
+app.get("/orders/:orderID", async (req, res) =>{
+
+    //get order from the database
+    const orderID = req.params.orderID;
+    let order = await getOrder({redisClient,orderID});
+    if(order === null){
+        res.status(404).send("Order not Found");
+    }else {
+        res.json(order);
+    }
+})
+
+app.post("/orderItems",async (req, res)=>{
+    try{
+        console.log("Schema:",Schema);
+        const validate = ajv.compile(Schema);
+        const valid = validate(req.body);
+        if(!valid){
+         return res.status(400).json({error: "Invalid request body"})
+        }
+        console.log("Request body:", req.body);
+        //callng orderItem function and storingthe result
+        const orderItemId = await addOrderItem({
+            redisClient,
+            orderItem: req.body,
+        })
+        //responding with the result
+        res.status(201).json({
+            orderItemId,
+            message: "Order Item Added Successfully"
+        });
+    }catch(error){
+
+        console.error("Error Adding Order Item", error);
+        res.status(500).json({error: "Internal Server Error"});
+    }
+})
+
+app.get("/ordersItems/:orderItemId", async (req,res)=> {
+    try{
+        const orderItemId = req.params.orderItemId;
+        const orderItem = await getOrderItem({ redisClient,orderItem});
+        res.json(orderItem);
+    }catch(error){
+        console.error("Error getting order Item:", error);
+        res.status(500).json({error:"Internal server error"});
+    }
+}) 
+
 const server = serverless.createServer(app);
 
 exports.handler = async (event, context) => {
