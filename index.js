@@ -12,7 +12,8 @@ const ajv = new Ajv();
 
 // Configure Redis client to connect to ElastiCache cluster
 const redisClient = Redis.createClient({
-    url: `redis://${process.env.REDIS_HOST}:6379`, // Use environment variable for Redis host
+    url: `redis://${process.env.REDIS_ENDPOINT}:6379`, // Use environment variable for Redis host
+
     
 });
 
