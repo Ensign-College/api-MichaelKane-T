@@ -13,8 +13,7 @@ const ajv = new Ajv();
 // Configure Redis client to connect to ElastiCache cluster
 const redisClient = Redis.createClient({
     url: `redis://${process.env.REDIS_ENDPOINT}:6379`, // Use environment variable for Redis host
-
-    
+    connect_timeout: 20000, // 5 seconds connection timeout
 });
 
 redisClient.on('connect', () => {
