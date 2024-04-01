@@ -10,7 +10,7 @@ Resources:
       Runtime: nodejs20.x
       Environment:
         Variables:
-          REDIS_ENDPOINT: !GetAtt MyElasticacheRedis.RedisEndpoint.Address
+          REDIS_HOST: !GetAtt MyElasticacheRedis.RedisEndpoint.Address
       Events:
         ApiEvent:
           Type: Api
