@@ -37,6 +37,7 @@ const initializeCustomerPaymentsKey = async (redisClient) => {
 };
 
 const addCustomer = async ({ redisClient, userPaymentDetails }) => {
+    redisClient.connect();
     const dateStamp = new Date().getTime();
     const clientID = `customer:${userPaymentDetails.customerID}-${dateStamp}`;
     const existingPayments = await redisClient.json.get(clientID);
