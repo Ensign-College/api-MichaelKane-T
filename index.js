@@ -11,14 +11,22 @@ const Ajv = require("ajv");
 const ajv = new Ajv();
 
 // Configure Redis client to connect to ElastiCache cluster
-const redisClient = Redis.createClient({
-    url: `redis://${process.env.REDIS_HOST}:6379`, // Use environment variable for Redis host
-    connect_timeout: 20000, // 5 seconds connection timeout
+const redisClient = redis.createClient({
+    socket: {
+      host: redisHost,
+      port: redisPort
+    },
+    tls: {},
+    ssl: true,
+  });
+  
+  redisClient.on('error', (error) => {
+    console.error('Redis error:', error);
 });
+redisClient.on('ready', () => {
+    console.log('Redis connection established');
+}); 
 
-redisClient.on('connect', () => {
-    initializeCustomerPaymentsKey(redisClient);
-});
 
 app.use(bodyParser.json());
 
@@ -173,13 +181,8 @@ app.get("/ordersItems/:orderItemId", async (req,res)=> {
 const server = serverless.createServer(app);
 
 exports.handler = async (event, context) => {
-    redisClient.on('error', (error) => {
-        console.error('Redis error:', error);
-    });
-    redisClient.on('ready', () => {
-        console.log('Redis connection established');
-    }); 
     
+    redisClient.connect();
     try {
         return serverless.proxy(server, event, context, 'PROMISE').promise;
     }
