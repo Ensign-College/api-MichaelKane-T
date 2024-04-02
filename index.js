@@ -172,7 +172,13 @@ app.get("/ordersItems/:orderItemId", async (req,res)=> {
 const server = serverless.createServer(app);
 
 exports.handler = async (event, context) => {
-    redisClient.connect();
+    redisClient.on('error', (error) => {
+        console.error('Redis error:', error);
+    });
+    redisClient.on('ready', () => {
+        console.log('Redis connection established');
+    }); 
+    
     try {
         return serverless.proxy(server, event, context, 'PROMISE').promise;
     }
@@ -180,5 +186,6 @@ exports.handler = async (event, context) => {
         console.error('Error handling request Chimbozama Futi:', error);
         return error;
     }
+    
     
 };
