@@ -11,7 +11,7 @@ Resources:
     Role: !Ref SeansLambdaRole    
 
   SeansLambdaRole:
-   Type: AWS::IAM::Role
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -20,34 +20,6 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      # Policies:
-      #   - PolicyName: root
-      #     PolicyDocument:
-      #       Version: '2012-10-17'
-      #       Statement:
-      #         - Effect: Allow
-      #           Action:
-      #             - logs:CreateLogGroup
-      #             - logs:CreateLogStream
-      #             - logs:PutLogEvents
-      #           Resource: arn:aws:logs:*:*:*
-      #         - Effect: Allow
-      #           Action:
-      #             - elasticache:DescribeCacheClusters
-      #             - elasticache:DescribeCacheSubnetGroups
-      #             - elasticache:DescribeEngineVersions
-      #             - elasticache:DescribeEvents
-      #             - elasticache:DescribeReplicationGroups
-      #             - elasticache:ListAllowedNodeTypeModifications
-      #             - elasticache:ListTagsForResource
-      #             - elasticache:ModifyCacheCluster
-      #             - elasticache:ModifyCacheSubnetGroup
-      #             - elasticache:ModifyReplicationGroup
-      #             - elasticache:RebootCacheCluster
-      #             - elasticache:ResetCacheParameterGroup
-      #             - elasticache:TagResource
-      #             - elasticache:UntagResource
-      #           Resource: "*"
 
   MyElasticacheRedis:
     Type: 'AWS::ElastiCache::CacheCluster'
@@ -100,5 +72,3 @@ Resources:
           Properties:
             Path: /api/data
             Method: post
-
-
