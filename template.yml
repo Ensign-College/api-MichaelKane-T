@@ -1,21 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description: Lambda App
 
 Resources:
-
-  MyVPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      VpcId: vpc-066e6a637e37f2752
-      CidrBlock: 10.0.0.0/16
-
-  MySubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: vpc-066e6a637e37f2752
-      CidrBlock: 10.0.0.0/24
-
   MyElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
@@ -31,7 +17,7 @@ Resources:
       NumCacheNodes: 1
       Port: 6379
       VpcSecurityGroupIds:
-        - !GetAtt MySecurityGroup.GroupId
+       - !GetAtt MySecurityGroup.GroupId
       CacheSubnetGroupName: !Ref MyElasticacheSubnetGroup
 
   MySecurityGroup:
@@ -46,26 +32,33 @@ Resources:
           CidrIp: 0.0.0.0/0
 
   MyLambdaFunction:
-    Type: AWS::Serverless::Function
+    Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
       Runtime: nodejs20.x
       CodeUri: .
-      MemorySize: 256  
-      Timeout: 30  
+      MemorySize: 128
+      Timeout: 30
       Environment:
         Variables:
           REDIS_HOST: !GetAtt MyElasticacheRedis.RedisEndpoint.Address
-          REDIS_PORT: !GetAtt MyElasticacheRedis.RedisEndpoint.Port
+          REDIS_PORT: 6379
       VpcConfig:
         SecurityGroupIds:
           - !GetAtt MySecurityGroup.GroupId
         SubnetIds:
-          - !Ref MySubnet
+          - subnet-02c217f126c0ce1d5  # Add your subnet ID here
+       
       Events:
-        HttpApi:
-          Type: HttpApi
+        MyApi:
+          Type: Api
           Properties:
-            Path: /
-            Method: any
+            Path: /api
+            Method: get
+        MyApi2:
+          Type: Api
+          Properties:
+            Path: /api/data
+            Method: post
+
 

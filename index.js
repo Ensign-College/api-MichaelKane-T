@@ -12,20 +12,8 @@ const ajv = new Ajv();
 
 // Configure Redis client to connect to ElastiCache cluster
 const redisClient = redis.createClient({
-    socket: {
-      host: redisHost,
-      port: redisPort
-    },
-    tls: {},
-    ssl: true,
+    url: `redis://process.env.REDIS_HOST:process.env.REDIS_PORT`,
   });
-  
-  redisClient.on('error', (error) => {
-    console.error('Redis error:', error);
-});
-redisClient.on('ready', () => {
-    console.log('Redis connection established');
-}); 
 
 
 app.use(bodyParser.json());
