@@ -107,7 +107,7 @@ app.post("/orders", async (req, res) => {
             await addOrder({ redisClient, order });
         } catch (error) {
             console.error(error);
-            res.status(500).send("Internal Server Error Occurred");
+            res.status(500).send("Internal Server Error Occurred again :/");
             return;
         }
     } else {
