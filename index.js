@@ -170,8 +170,9 @@ const server = serverless.createServer(app);
 
 exports.handler = async (event, context) => {
     
-    redisClient.connect();
+   
     try {
+        await redisClient.connect();
         return serverless.proxy(server, event, context, 'PROMISE').promise;
     }
     catch (error) {
