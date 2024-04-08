@@ -1,37 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
+Description: Lambda App
 
 Resources:
+
   MyElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
       Description: Subnet group for ElastiCache
       SubnetIds:
-        - subnet-02c217f126c0ce1d5 
-    Role: !Ref SeansLambdaRole    
-
-  SeansLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: MyLambdaPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                Resource: '*'
-
+        - subnet-02c217f126c0ce1d5
 
   MyElasticacheRedis:
     Type: 'AWS::ElastiCache::CacheCluster'
@@ -41,7 +19,7 @@ Resources:
       NumCacheNodes: 1
       Port: 6379
       VpcSecurityGroupIds:
-       - !GetAtt MySecurityGroup.GroupId
+        - !GetAtt MySecurityGroup.GroupId
       CacheSubnetGroupName: !Ref MyElasticacheSubnetGroup
 
   MySecurityGroup:
@@ -53,34 +31,74 @@ Resources:
         - IpProtocol: tcp
           FromPort: 6379
           ToPort: 6379
-          CidrIp: 0.0.0.0/0
+          CidrIp: 0.0.0.0/0  # This allows access from any IP, modify as needed
+    DeletionPolicy: Delete
 
-  MyLambdaFunction:
+  ArecLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: MichaelLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  # Function to handle POST requests for sending payments
+  SendPaymentFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: index.handler
+      Handler: sendPaymentHandler.sendPaymentHandler
       Runtime: nodejs20.x
       CodeUri: .
-      MemorySize: 128
       Timeout: 30
+      MemorySize: 256
       Environment:
         Variables:
           REDIS_HOST: !GetAtt MyElasticacheRedis.RedisEndpoint.Address
-          REDIS_PORT: 6379
+          REDIS_PORT: !GetAtt MyElasticacheRedis.RedisEndpoint.Port
       VpcConfig:
         SecurityGroupIds:
           - !GetAtt MySecurityGroup.GroupId
         SubnetIds:
-          - subnet-02c217f126c0ce1d5  # Add your subnet ID here
-      
+          - subnet-02c217f126c0ce1d5
       Events:
-        MyApi:
-          Type: Api
+        HttpApi:
+          Type: HttpApi
           Properties:
-            Path: /api
-            Method: get
-        MyApi2:
-          Type: Api
-          Properties:
-            Path: /api/data
+            Path: /sendPayment
             Method: post
+      Role: arn:aws:iam::730335528058:role/ArecLambdaRole
+
+  # Function to handle GET requests for payment by ID
+  GetPaymentFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: getPaymentHandler.getPaymentHandler
+      Runtime: nodejs20.x
+      CodeUri: .
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          REDIS_HOST: !GetAtt MyElasticacheRedis.RedisEndpoint.Address
+          REDIS_PORT: !GetAtt MyElasticacheRedis.RedisEndpoint.Port
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt MySecurityGroup.GroupId
+        SubnetIds:
+          - subnet-02c217f126c0ce1d5
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /getPayment/{paymentId}
+            Method: get
+      Role: arn:aws:iam::730335528058:role/ArecLambdaRole
+
+  
